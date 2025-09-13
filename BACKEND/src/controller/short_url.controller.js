@@ -10,7 +10,8 @@ export const createShortUrl = async (req, res, next) => {
     }
 
     const shortUrl = await createShortUrlWithoutUser(url);
-    res.status(201).json({ shortUrl: process.env.APP_URL + shortUrl });
+    res.status(201).json({ shortUrl: `${process.env.APP_URL}/${shortUrl}` });
+
   } catch (err) {
     next(err);
   }

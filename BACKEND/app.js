@@ -6,10 +6,12 @@ import ShortUrl from "./src/models/shorturl.model.js";
 import short_url from "./src/routes/short_url.route.js";
 import { redirectFromShortUrl } from "./src/controller/short_url.controller.js";
 import { errorHandler, notFound } from "./src/middleware/errorHandler.js";
-
+import cors from "cors"
 dotenv.config({ path: "./.env" });
 
 const app = express();
+
+app.use(cors())
 
 // Middleware
 app.use(express.json());
