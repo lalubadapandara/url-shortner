@@ -1,89 +1,106 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { createShortUrl } from "../api/shortUrl.api";
+import React, { useState } from 'react'
+import { createShortUrl } from '../api/shortUrl.api'
+import { useSelector } from 'react-redux'
+import { QueryClient } from '@tanstack/react-query'
+import { queryClient } from '../main'
 
 const UrlForm = () => {
-  const [url, setValue] = useState("https://www.google.com/");
-  const [shortUrl, setShortUrl] = useState("");
-  const [copied, setCopied] = useState(false);
+  
+  const [url, setUrl] = useState("https://www.google.com")
+  const [shortUrl, setShortUrl] = useState()
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState(null)
+  const [customSlug, setCustomSlug] = useState("")
+  const {isAuthenticated} = useSelector((state) => state.auth)
 
-const handleSubmit = async (event) => {
-  event.preventDefault();
-  try {
-    const response = await createShortUrl(url);
-    setShortUrl(response.shortUrl); // <-- use property from backend
-    setCopied(false);
-  } catch (error) {
-    console.error("Error shortening URL:", error);
+  const handleSubmit = async () => {
+    try{
+      const shortUrl = await createShortUrl(url,customSlug)
+      setShortUrl(shortUrl)
+      queryClient.invalidateQueries({queryKey: ['userUrls']})
+      setError(null)
+    }catch(err){
+      setError(err.message)
+    }
   }
-};
-
-
-
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shortUrl);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000); // reset after 2s
-  };
+    
+    // Reset the copied state after 2 seconds
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
+  }
 
   return (
-    <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md mx-auto mt-10">
-      {/* Header */}
-      <h1 className="text-2xl font-bold text-center text-indigo-600 mb-6">
-        🔗 Link Shortener
-      </h1>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
         <div>
-          <label
-            htmlFor="url"
-            className="block text-gray-700 font-medium mb-2"
-          >
-            Enter your long URL
+          <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
+            Enter your URL
           </label>
           <input
             type="url"
             id="url"
-            name="url"
             value={url}
-            onChange={(event) => setValue(event.target.value)}
-            placeholder="https://example.com/very/long/url"
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            onInput={(event)=>setUrl(event.target.value)}
+            placeholder="https://example.com"
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-
         <button
+          onClick={handleSubmit}
           type="submit"
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-medium transition"
-        >
-          Shorten URL
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+        >Shorten URL
         </button>
-      </form>
+         {error && (
+          <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
+        {isAuthenticated && (
+          <div className="mt-4">
+            <label htmlFor="customSlug" className="block text-sm font-medium text-gray-700 mb-1">
+              Custom URL (optional)
+            </label>
+            <input
+              type="text"
+              id="customSlug"
+              value={customSlug}
+              onChange={(event) => setCustomSlug(event.target.value)}
+              placeholder="Enter custom slug"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+        {shortUrl && (
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold mb-2">Your shortened URL:</h2>
+            <div className="flex items-center">
+              <input
+                type="text"
+                readOnly
+                value={shortUrl}
+                className="flex-1 p-2 border border-gray-300 rounded-l-md bg-gray-50"
+              />
+               <button
+                onClick={handleCopy}
+                className={`px-4 py-2 rounded-r-md transition-colors duration-200 ${
+                  copied 
+                    ? 'bg-green-500 text-white hover:bg-green-600' 
+                    : 'bg-gray-200 hover:bg-gray-300'
+                }`}
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+  )
+}
 
-      {/* Result just below button */}
-      {shortUrl && (
-        <div className="mt-4 p-4 bg-green-50 border border-green-300 rounded-lg flex items-center justify-between">
-          <a
-            href={shortUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-600 underline break-all"
-          >
-            {shortUrl}
-          </a>
-          <button
-            onClick={handleCopy}
-            className="ml-3 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-lg text-sm"
-          >
-            {copied ? "✅ Copied" : "📋 Copy"}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default UrlForm;
+export default UrlForm

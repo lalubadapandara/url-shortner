@@ -1,34 +1,41 @@
 import express from "express";
-import { nanoid } from "nanoid";
-import dotenv from "dotenv";
-import connectDB from "./src/config/mongo.config.js";
-import ShortUrl from "./src/models/shorturl.model.js";
-import short_url from "./src/routes/short_url.route.js";
+import {nanoid} from "nanoid"
+import dotenv from "dotenv"
+import connectDB from "./src/config/monogo.config.js"
+import short_url from "./src/routes/short_url.route.js"
+import user_routes from "./src/routes/user.routes.js"
+import auth_routes from "./src/routes/auth.routes.js"
 import { redirectFromShortUrl } from "./src/controller/short_url.controller.js";
-import { errorHandler, notFound } from "./src/middleware/errorHandler.js";
+import { errorHandler } from "./src/utils/errorHandler.js";
 import cors from "cors"
-dotenv.config({ path: "./.env" });
+import { attachUser } from "./src/utils/attachUser.js";
+import cookieParser from "cookie-parser"
+
+dotenv.config();
 
 const app = express();
 
-app.use(cors())
+app.use(cors({
+    origin: 'http://localhost:5173', // your React app
+    credentials: true // 👈 this allows cookies to be sent
+}));
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json())
+app.use(express.urlencoded({extended:true}))
+app.use(cookieParser())
 
-// Routes
-app.use("/api/create", short_url);
-app.get("/:id", redirectFromShortUrl);
+app.use(attachUser)
 
-// 404 handler
-app.use(notFound);
+app.use("/api/user",user_routes)
+app.use("/api/auth",auth_routes)
+app.use("/api/create",short_url)
+app.get("/:id",redirectFromShortUrl)
 
-// Error handling middleware
-app.use(errorHandler);
+app.use(errorHandler)
 
-// Start server
-app.listen(5000, () => {
-  connectDB();
-  console.log("🚀 Server is running on port 5000");
-});
+app.listen(3000,()=>{
+    connectDB()
+    console.log("Server is running on http://localhost:3000");
+})
+
+// GET - Redirection 
